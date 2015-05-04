@@ -8,27 +8,23 @@ typedef unsigned long long int ULL;
 ULL total = 0;
 
 #define RIGHTMOST (1<<(SIZE-1))
-#define TOPMOST   (1<<((SIZE-1)*(SIZE-1)))
 #define FULL      (BIT(SIZE*SIZE)-1ULL)
 const ULL end_flag = BIT((SIZE+1)*(SIZE-1));
-const ULL ne_stuck = BIT(SIZE*(SIZE-2)+SIZE-3) + BIT(SIZE*(SIZE-3)+(SIZE-2)) ;
 
 #define check_and_rec(nh, dv) \
     {if ( v<SIZE*SIZE-dv ) \
       if ( ! (state&(((ULL)nh)<<(v+dv))) ) \
-	main_loop( PACK(nh, v+dv), state|(((ULL)nh)<<(v+dv)));}; \
+       main_loop( PACK(nh, v+dv), state|(((ULL)nh)<<(v+dv)));}; \
     {if ( v>=dv ) \
       if ( ! (state&(((ULL)nh)<<(v-dv))) ) \
-	main_loop( PACK(nh, v-dv), state|(((ULL)nh)<<(v-dv)));};
+       main_loop( PACK(nh, v-dv), state|(((ULL)nh)<<(v-dv)));};
 
 void main_loop(const unsigned int p, const ULL state) {
-  const unsigned int eh = p>>16;
-  const unsigned int v =  p&0xffff;
   if ( state & end_flag ) { // reached the goal
-      if ( state==FULL ) { total+=2; printf("%lld\n", total); }
-  } else if ( (state & ne_stuck) == ne_stuck) { // cannot reach the goal
-    return;
+      if ( state==FULL ) printf("%lld\n", ++total); 
   } else {
+    const unsigned int eh = p>>16;
+    const unsigned int v =  p&0xffff;
     switch(eh) {
     case 1:
       check_and_rec(2, 2*SIZE); 
@@ -60,6 +56,6 @@ void main_loop(const unsigned int p, const ULL state) {
 int main(void) {
   printf("size %d\n", SIZE);
   main_loop( PACK (4,SIZE) ,1ULL+BIT(SIZE+2));
-  printf("total %lld\n", total);
+  printf("total %lld\n", total<<1);
 }
 
