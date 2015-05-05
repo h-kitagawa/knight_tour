@@ -1,3 +1,5 @@
+*~
+
 # object file
 *.s
 *.obj
@@ -6,3 +8,5 @@
 # executables
 kitagawa/knight
 kitagawa/knight2
+kitagawa/knight3_?
+

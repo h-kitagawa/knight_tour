@@ -1,0 +1,10 @@
+knight3.c: multi-thread (5 threads) version
+================================
+compile method (7x7)
+  gcc -s -march=native -Ofast -o knight3_7 knight3.c -lpthread
+
+6x6: gcc -s -march=native -Ofast -o knight3_6 -DSIZE=6 knight3.c -lpthread
+5x5: gcc -s -march=native -Ofast -o knight3_5 -DSIZE=5 knight3.c -lpthread
+
+"-march=native" and "-Ofast" are options for optimization.
+
