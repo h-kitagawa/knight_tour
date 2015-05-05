@@ -23,9 +23,12 @@ void inline check_and_rec(const ULL nh, const unsigned int nv, const ULL state, 
   if ( (nv<SIZE*SIZE)  && ! (state&(nh<<nv)) ) main_loop( nh, nv, state|(nh<<nv), sum );
 }
 
+#define OUT(cond) if ( state==(cond) ) {++(*sum); if (!((*sum)&0xfff)) printf("%lld\n",*sum);}
 void main_loop(const unsigned int eh, const unsigned int v, const ULL state, ULL* sum) {
   if ( state & end_flag ) { // reached the goal
-      if ( state==FULL ) { printf("%lld\n", ++(*sum)); }
+      if ( state==FULL ) {
+	OUT(FULL);
+      }
   } else {
     switch(eh) {
     case 1:
@@ -57,7 +60,7 @@ void main_loop(const unsigned int eh, const unsigned int v, const ULL state, ULL
 	 check_and_rec(RIGHTMOST>>2, SIZE, state | secorner_flag,  sum);
        } else if ((v==(SIZE-3)*SIZE) && (state & ne_sww_flag)) {
 	 // we have to reach the goal at the next move
-	 if ( state==FULL-end_flag ) { printf("%lld\n", ++(*sum)); }
+	 OUT(FULL-end_flag);
        } else {
 	 check_and_rec(RIGHTMOST,    v+2*SIZE, state, sum);
 	 check_and_rec(RIGHTMOST>>2, v+2*SIZE, state, sum);
@@ -72,7 +75,7 @@ void main_loop(const unsigned int eh, const unsigned int v, const ULL state, ULL
 	check_and_rec(RIGHTMOST>>1, 2*SIZE, state | secorner_flag,  sum);
       } else if ((v==(SIZE-2)*SIZE) && (state & ne_ssw_flag)) {
 	 // we have to reach the goal at the next move
-	 if ( state==FULL-end_flag ) { printf("%lld\n", ++(*sum)); }
+	 OUT(FULL-end_flag);
       } else {
 	check_and_rec(RIGHTMOST>>1, v+2*SIZE, state, sum);
 	check_and_rec(RIGHTMOST>>3, v+2*SIZE, state, sum);
