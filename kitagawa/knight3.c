@@ -23,7 +23,7 @@ void inline check_and_rec(const ULL nh, const unsigned int nv, const ULL state, 
   if ( (nv<SIZE*SIZE)  && ! (state&(nh<<nv)) ) main_loop( nh, nv, state|(nh<<nv), sum );
 }
 
-#define OUT(cond) if ( state==(cond) ) {++(*sum); if (!((*sum)&0xfff)) printf("%lld\n",*sum);}
+#define OUT(cond) if ( state==(cond) ) {++(*sum);}
 void main_loop(const unsigned int eh, const unsigned int v, const ULL state, ULL* sum) {
   if ( state & end_flag ) { // reached the goal
       if ( state==FULL ) {
