@@ -1,0 +1,16 @@
+\documentclass[9pt,twocolumn]{ltjsarticle}
+\usepackage{xcolor}
+\usepackage[kozuka-pr6n]{luatexja-preset}
+\normalsize
+\usepackage[truedimen,a4paper,landscape,textwidth=96\zw,lines=39]{geometry}
+\columnsep2\zw
+\usepackage{listings}
+\setmonofont{DejaVu Sans Mono}
+\lstset{basicstyle=\ttfamily, language=C++,basewidth=0.58\zw,
+  commentstyle=\color{green!50!black}, keywordstyle=\bfseries\color{blue!75!black},
+  morekeywords=[2]{SIZE,MTHREAD,bit_to_mask,rmb,BIT,is_2power,main_loop,loop_aux,%
+    inn_loop,corner_aux,sigint_handler,main_loop_call,main},
+  keywordstyle=[2]{\color{blue!50!purple}}}
+\begin{document}
+\lstinputlisting{knight5.cc}
+\end{document}
