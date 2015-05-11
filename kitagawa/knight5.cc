@@ -1,155 +1,159 @@
-// 長尾さんの nagao.cc を小改変したもの
-// ./knight4_7  9090.30s user 0.53s system 301% cpu 50:11.98 total
 #include <stdio.h>
-#include <set>
-
+#include <thread>
 using namespace std;
+#include <signal.h>
+#include <unistd.h>
 
 #ifndef SIZE
 #define SIZE 7
 #endif
 
-#define MULTITHREAD
+#define MTHREAD
 
-typedef unsigned long long int ULL;
-typedef set<int> positions;
-positions possible_pool[5][SIZE*SIZE];
-
-
-#define PAIR(x,y) ((x)*SIZE + (y))
-#define GOAL PAIR(SIZE-1,SIZE-1)
-#define NW_CC PAIR(0,SIZE-1)
-#define NW_C1 PAIR(2,SIZE-2)
-#define NW_C2 PAIR(1,SIZE-3)
-#define SE_CC PAIR(SIZE-1,0)
-#define SE_C1 PAIR(SIZE-2,2)
-#define SE_C2 PAIR(SIZE-3,1)
 #define BIT(a) (1ULL<<(a))
+typedef unsigned long long int ULL;
 
-#define OUT_SET(p) for(positions::iterator itr=possible[p].begin(); itr!=possible[p].end(); itr++) printf("%d ", *itr); printf("\n");
-void search(const int p1, const ULL state, ULL* sum, positions possible[])
-{
+#define RIGHTMOST (SIZE-1)
+#define FULL      (BIT(SIZE*SIZE)-1ULL)
+#define end_flag  BIT((SIZE+1)*(SIZE-1))
+const ULL nwcorner_flag = BIT(SIZE*(SIZE-1));
+const ULL secorner_flag = BIT(SIZE-1);
+#define nw_1_flag BIT((SIZE-2)*SIZE+2)
+#define nw_2_flag BIT((SIZE-3)*SIZE+1)
+#define ne_1_flag BIT((SIZE-2)*SIZE+(SIZE-3))
+#define ne_2_flag BIT((SIZE-3)*SIZE+(SIZE-2))
+#define se_1_flag BIT(1*SIZE+(SIZE-3))
+#define se_2_flag BIT(2*SIZE+(SIZE-2))
 
-  const positions &current = possible[p1];
+ULL mask[SIZE*SIZE];
 
-  if (p1==NW_C1 && !(state&BIT(NW_CC))) {
-    if (!(state&BIT(NW_C2))) {
-      possible[NW_CC].erase(NW_C2);
-      search(NW_C2, state|BIT(NW_CC)|BIT(NW_C2), sum, possible);
-      possible[NW_CC].insert(NW_C2);
-    }
-  } else  if (p1==NW_C2 && !(state&BIT(NW_CC))) {
-    if (!(state&BIT(NW_C1))) {
-      possible[NW_CC].erase(NW_C1);
-      search(NW_C1, state|BIT(NW_CC)|BIT(NW_C1), sum, possible);
-      possible[NW_CC].insert(NW_C1);
-    }
-  } else if (p1==SE_C1 && !(state&BIT(SE_CC))) {
-    if (!(state&BIT(SE_C2))) {
-      possible[SE_CC].erase(SE_C2);
-      search(SE_C2, state|BIT(SE_CC)|BIT(SE_C2), sum, possible);
-      possible[SE_CC].insert(SE_C2);
-    }
-  } else  if (p1==SE_C2 && !(state&BIT(SE_CC))) {
-    if (!(state&BIT(SE_C1))) {
-      possible[SE_CC].erase(SE_C1);
-      search(SE_C1, state|BIT(SE_CC)|BIT(SE_C1), sum, possible);
-      possible[SE_CC].insert(SE_C1);
-    }
-  } else {
-    int uniques = 0;
-    int np; // next position
-    for (const int &n: current) {
-      positions &l = possible[n];
-      l.erase(p1);
-      if (n!=GOAL && l.size() == 1) {
-	uniques++; np=n;
-      }
-    }
-    switch (uniques) {
-    case 1:
-      if ( (state|BIT(np)) == BIT(SIZE*SIZE-1)-1ULL ) {
-	(*sum)++; if (!((*sum)&0xffff)) printf("%lld\n", *sum); 
-      } else
-	search(np, state|BIT(np), sum, possible);
-      break;
-    case 0:
-      for (const int &n: current) {
-	if ( n!=GOAL )
-	  search(n, state|BIT(n), sum, possible);
-      }
-    }
-    for (const int &n: current) possible[n].insert(p1);
+#ifdef __GNUC__ // GCC
+ULL inline bit_to_mask(const ULL a) {
+  return mask [__builtin_ctzll(a)];
+}
+#else
+#ifdef  _MSC_VER  // Visual Studio（未確認）
+#include <intrin.h>
+#pragma intrinsic(_BitScanReverse)
+ULL inline bit_to_mask(const ULL a){
+  int x;
+  _BitScanReverse64(&x,a);
+  return mask[x];
+}
+#endif
+#endif
+
+
+void main_loop(const ULL p, const ULL state, ULL * const sum);
+
+#define inn_loop() \
+  { const ULL pos_msb = pos&(-pos); \
+    main_loop(pos_msb, state|pos_msb, sum) ; \
+    pos-=pos_msb; } \
+  if(!pos) return;
+
+void inline loop_aux(const ULL p, const ULL state, ULL * const sum) {
+  ULL pos = (~state)&bit_to_mask(p); // p から行ける場所
+  if (pos) {
+    // pos の最上位ビットから順番に調べていく．
+    // 高々 8 箇所しかないので手動でループ展開
+    inn_loop(); inn_loop(); inn_loop(); inn_loop();
+    inn_loop(); inn_loop(); inn_loop(); 
+    main_loop(pos, state|pos, sum);
   }
 }
 
+void inline corner_aux(const ULL p, const ULL q, const ULL c, const ULL state, ULL * const sum) {
+  if ( !(state&c) ) {// 角 (c) 未到達
+    if ( !(state&q) ) main_loop(q, state|(q|c), sum);
+  }
+  else loop_aux(p, state, sum);
+}
+
+void main_loop(const ULL p,  const ULL state, ULL * const sum) {
+  switch (p) {
+#if (SIZE >= 6)
+  case ne_1_flag:
+    if ( state&ne_2_flag ) {
+      if (state==FULL-end_flag) ++(*sum);
+    } else loop_aux(ne_1_flag, state, sum);
+    break;
+  case ne_2_flag:
+    if ( state&ne_1_flag ) {
+      if (state==FULL-end_flag) ++(*sum);
+    } else loop_aux(ne_2_flag, state, sum);
+    break;
+#else
+  case end_flag: 
+    if (state==FULL) ++(*sum); break;
+#endif
+  case nw_1_flag:
+    corner_aux(nw_1_flag, nw_2_flag, nwcorner_flag, state, sum); break;
+  case nw_2_flag:
+    corner_aux(nw_2_flag, nw_1_flag, nwcorner_flag, state, sum); break;
+  case se_1_flag:
+    corner_aux(se_1_flag, se_2_flag, secorner_flag, state, sum); break;
+  case se_2_flag:
+    corner_aux(se_2_flag, se_1_flag, secorner_flag, state, sum); break;
+  default:
+    loop_aux(p, state, sum);
+  }
+}
 
 ULL sum[5];
-void* loop_1(void *) {
-  search(PAIR(0, 4), BIT(PAIR(0,0))+BIT(PAIR(1,2))+BIT(PAIR(0,4)), sum, possible_pool[0]);
-}
-void* loop_2(void *) {
-  search(PAIR(2, 4), BIT(PAIR(0,0))+BIT(PAIR(1,2))+BIT(PAIR(2,4)), sum + 1, possible_pool[1]);
-}
-void* loop_3(void *) {
-  search(PAIR(3, 3), BIT(PAIR(0,0))+BIT(PAIR(1,2))+BIT(PAIR(3,3)), sum + 2, possible_pool[2]);
-}
-void* loop_4(void *) {
-  search(PAIR(3, 1), BIT(PAIR(0,0))+BIT(PAIR(1,2))+BIT(PAIR(3,1)), sum + 3, possible_pool[3]);
-}
-void* loop_5(void *) {
-  search(PAIR(2, 0), BIT(PAIR(0,0))+BIT(PAIR(1,2))+BIT(PAIR(2,0)), sum + 4, possible_pool[4]);
-}
 
-#ifdef MULTITHREAD
-#include <pthread.h>
-#endif
 
-typedef pair<int,int> position;
-int main()
-{
+#define main_loop_call(a,b,c,d)  main_loop(BIT(a+b), c+BIT(a+b), sum+d)
+
+#define setmask(dx, dy) \
+  if( ((unsigned)(i+dx)<SIZE)&&((unsigned)(j+dy)<SIZE) ) \
+    mask[i+j*SIZE] |= BIT( (i+dx)+SIZE*(j+dy) );
+
+static void sigint_handler(int sig) {
   ULL gt = 0;
-  pthread_t tid1, tid2, tid3, tid4, tid5;
+  for (int i=0;i<5;i++)  gt += sum[i]<<1;
+  printf("! interrupt (%s). %lld\n", 
+	 (sig==SIGINT)?"SIGINT":((sig==SIGTERM)?"SIGTERM":"???"),
+	 gt);
+  exit(sig);
+}
 
-    const position next_positions[8] = {
-        make_pair(+2, +1), make_pair(+2, -1),
-        make_pair(+1, +2), make_pair(+1, -2),
-        make_pair(-1, +2), make_pair(-1, -2),
-        make_pair(-2, +1), make_pair(-2, -1)
-    };
-    for (int x = 0; x < SIZE; ++x)
-        for (int y = 0; y < SIZE; ++y)
-	  for (const position &d: next_positions) {
-	    const int dx = d.first, dy = d.second;
-	    if ( (unsigned)(x+dx)<SIZE && (unsigned)(y+dy)<SIZE )
-	      for(int k=0;k<5;k++) possible_pool[k][PAIR(x,y)].insert( PAIR(x+dx, y+dy) );
-	  };
+int main(void) {
+  signal(SIGINT, sigint_handler);
+  signal(SIGTERM, sigint_handler);
+  printf("size %d\n", SIZE);
 
-    for(int k=0;k<5;k++) {
-      for (const int &n: possible_pool[k][0]) possible_pool[k][n].erase(0); 
-      for (const int &n: possible_pool[k][PAIR(1,2)]) possible_pool[k][n].erase(PAIR(1,2)); 
-    }
+ { // mask 初期化
+   for (int i=0;i<SIZE*SIZE;i++) mask[i]=0;
+   for (int i=0;i<SIZE;i++) 
+     for (int j=0;j<SIZE;j++) {
+       setmask(+2,+1); setmask(+2,-1); setmask(-2,+1); setmask(-2,-1);
+       setmask(+1,+2); setmask(+1,-2); setmask(-1,+2); setmask(-1,-2);
+     }
+   for (int i=0;i<SIZE*SIZE;i++) mask[i]&= ~(1ULL+BIT(SIZE+2));
+ }
 
-#ifdef MULTITHREAD
-  pthread_create(&tid1, NULL, loop_1, NULL);
-  pthread_create(&tid2, NULL, loop_2, NULL);
-  pthread_create(&tid3, NULL, loop_3, NULL);
-  pthread_create(&tid4, NULL, loop_4, NULL);
-  pthread_create(&tid5, NULL, loop_5, NULL);
 
-  pthread_join(tid1,NULL);
-  pthread_join(tid2,NULL);
-  pthread_join(tid3,NULL);
-  pthread_join(tid4,NULL);
-  pthread_join(tid5,NULL);
+#ifdef MTHREAD
+  auto th1 = thread([]{ main_loop_call ( 4,      0, 1ULL+BIT(SIZE+2), 0 ); });
+  auto th2 = thread([]{ main_loop_call ( 4, 2*SIZE, 1ULL+BIT(SIZE+2), 1 );});
+  auto th3 = thread([]{ main_loop_call ( 3, 3*SIZE, 1ULL+BIT(SIZE+2), 2 );});
+  auto th4 = thread([]{ main_loop_call ( 1, 3*SIZE, 1ULL+BIT(SIZE+2), 3 );});
+  auto th5 = thread([]{ main_loop_call ( 0, 2*SIZE, 1ULL+BIT(SIZE+2), 4 );});
+
+  th1.join(); th2.join(); th3.join(); th4.join(); th5.join();
+
 #else
-  search(PAIR(1,2), BIT(PAIR(0,0))+BIT(PAIR(1,2)), sum, possible_pool[0]);
+  main_loop_call ( 2, SIZE, 1ULL, 0 );
 #endif
 
- for (int i=0;i<5;i++) {
-    gt += sum[i]<<1;
-    printf("%c: sum %lld\n", 'A'+i, sum[i]<<1);
+  { // 合計表示
+    ULL gt = 0;
+    for (int i=0;i<5;i++) {
+      gt += sum[i]<<1;
+      printf("%c: sum %lld\n", 'A'+i, sum[i]<<1);
+    }
+    printf("total %lld\n", gt);
   }
-  printf("total %lld\n", gt);
-  return 0;
 }
+

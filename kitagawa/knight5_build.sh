@@ -10,7 +10,7 @@ get_ELAPS() {
         let ELAPS=${END/./}0-${START/./}0
 }
 
-g++ ${CFLAGS} -g  -std=c++11 -o knight5_5 -DSIZE=5 knight5.cc -lpthread || exit 1
+g++ ${CFLAGS} -g -std=c++11 -o knight5_5 -DSIZE=5 knight5.cc -lpthread || exit 1
 g++ ${CFLAGS} -s -std=c++11 -Ofast -o knight5_6 -DSIZE=6 knight5.cc -lpthread
 g++ ${CFLAGS} -s -std=c++11 -Ofast -o knight5_7 knight5.cc -lpthread
 TEST=`./knight5_5 |tail -1 | sed 's/total //'`
