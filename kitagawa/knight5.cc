@@ -126,10 +126,9 @@ void main_loop(ULL p,  ULL state, ULL * const sum) {
     if ( state&ne_1_flag ) { if (state==FULL-end_flag) ++(*sum);} 
     else loop_aux(ne_2_flag);
     break;
-#else // SIZE == 5
+#endif
   case end_flag: 
     if (state==FULL) ++(*sum); break;
-#endif
   case nw_1_flag:
     corner_aux(nw_1_flag, nw_2_flag, nwcorner_flag); break;
   case nw_2_flag:
